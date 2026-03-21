@@ -1,6 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { Resend } from "resend"
 
-export async function POST(request: NextRequest) {
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+export async function POST(request: Request) {
   try {
     const { name, email, subject, message } = await request.json()
 
@@ -8,17 +11,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    console.log("[v0] Form submission received:", { name, email, subject, message })
+    const data = await resend.emails.send({
+      from: "onboarding@resend.dev", // temporary sender
+      to: "leninnamitha@gmail.com", // 🔥 CHANGE THIS to your email
+      subject: subject || "New Contact Form Message",
+      html: `
+        <h2>New Message from Portfolio</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Message:</strong> ${message}</p>
+      `,
+    })
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Thank you! Your message has been received. I'll get back to you soon!",
-      },
-      { status: 200 },
-    )
+    return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error("[v0] Form submission error:", error)
-    return NextResponse.json({ error: "Failed to process your request. Please try again." }, { status: 500 })
+    console.error("Email error:", error)
+    return NextResponse.json({ error: "Failed to send email" }, { status: 500 })
   }
 }
+console.log(process.env.RESEND_API_KEY);
